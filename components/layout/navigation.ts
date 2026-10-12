@@ -1,12 +1,14 @@
 import {
   ArrowLeftRight,
+  BedDouble,
+  Building2,
   ClipboardCheck,
+  ScanLine,
   House,
   KeyRound,
   LayoutDashboard,
   PackageSearch,
   ReceiptText,
-  ScanLine,
   UsersRound,
   VolumeX,
   Wrench,
@@ -24,6 +26,9 @@ export const navIcons = {
   checkin: ScanLine,
   transfer: ArrowLeftRight,
   noise: VolumeX,
+  bookings: BedDouble,
+  hostels: Building2,
+  gate: ScanLine,
 } as const;
 
 export type NavIcon = keyof typeof navIcons;

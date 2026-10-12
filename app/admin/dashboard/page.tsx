@@ -1,5 +1,6 @@
 "use client";
 import Card from "@/components/ui/Card";
+import GateQrCard from "@/components/hostel/GateQrCard";
 import { Activity, ArrowDownRight, ArrowUpRight, ArrowUpRight as LinkArrow, UsersRound, UserRoundCheck, Wrench, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { useApiResource } from "@/components/hostel/useApiResource";
@@ -30,6 +31,7 @@ export default function AdminDashboard() {
         </Link>
       </div>
       {error && <p role="alert" className="dashboard-error">{error}</p>}
+      <GateQrCard />
       <div className="grid dashboard-stats">
         {cards.map((stat) => {
           const Icon = stat.icon;

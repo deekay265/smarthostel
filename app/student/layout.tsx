@@ -6,6 +6,7 @@ import type { NavItem } from "@/components/layout/navigation";
 
 const nav: NavItem[] = [
   { href: "/student/dashboard", label: "Home", icon: "home" },
+  { href: "/student/bookings", label: "Bookings", icon: "bookings" },
   { href: "/student/checkin", label: "Check-in", icon: "checkin" },
   { href: "/student/inspections", label: "Inspections", icon: "inspections" },
   { href: "/student/receipts", label: "Receipts", icon: "receipts" },

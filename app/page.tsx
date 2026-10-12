@@ -1,18 +1,19 @@
 import Link from "next/link";
-import { ArrowRight, Building2, Check, ClipboardCheck, ShieldCheck, UsersRound } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Check, ClipboardCheck, ShieldCheck, UsersRound } from "lucide-react";
 
 export default function Home() {
   return (
     <main className="home-hero">
       <div className="home-content">
         <div className="home-topline">
-          <span className="brand-mark"><Building2 size={20} /></span>
+          <span className="brand-mark"><Image src="/logo-white.png" alt="MUBAS crest" width={38} height={38} priority /></span>
           <span>MUBAS · RESIDENCE SERVICES</span>
         </div>
         <div className="home-layout">
           <section>
             <div className="home-eyebrow">Welcome to your campus home</div>
-            <h1 className="home-title">A smarter way to <span>feel at home.</span></h1>
+            <h1 className="home-title">MUBAS <span>Student Hostels</span></h1>
             <p className="home-description">
               Your residence information and hostel services, thoughtfully brought together in one secure portal.
             </p>

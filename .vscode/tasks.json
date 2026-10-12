@@ -1,0 +1,150 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Final SmartHostel validation",
+			"type": "shell",
+			"command": "npm.cmd run lint; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm.cmd run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Generate notifications migration",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"db:generate"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final implementation verification",
+			"type": "shell",
+			"command": "npm.cmd run lint; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm.cmd run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check SmartHostel health endpoint",
+			"type": "shell",
+			"command": "node.exe",
+			"args": [
+				"-e",
+				"fetch('http://localhost:3000/api/health').then(async response => console.log(response.status, await response.text())).catch(error => console.error(error.message))"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Probe local health endpoint",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"--silent",
+				"--show-error",
+				"--write-out",
+				"\\nHTTP %{http_code}\\n",
+				"http://localhost:3000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check PostgreSQL connection",
+			"type": "shell",
+			"command": "node.exe",
+			"args": [
+				"scripts/check-db-connection.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Synchronize SmartHostel database",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"db:push"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Generate current schema migration",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"db:generate"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Apply additive database migrations",
+			"type": "shell",
+			"command": ".\\node_modules\\.bin\\drizzle-kit.cmd",
+			"args": [
+				"migrate"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect public DB tables",
+			"type": "shell",
+			"command": "node.exe",
+			"args": [
+				"-e",
+				"require('dotenv').config(); const postgres=require('postgres').default; (async()=>{const db=postgres(process.env.DATABASE_URL,{max:1,prepare:false}); try { const rows=await db`select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by table_name`; console.log(rows.map(row=>row.table_name).join('\\n')); } finally { await db.end(); }})().catch(error=>{console.log(error.code||'database-error'); process.exitCode=1;});"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect DB columns",
+			"type": "shell",
+			"command": "node.exe",
+			"args": [
+				"scripts/inspect-db-schema.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Apply data-preserving migrations",
+			"type": "shell",
+			"command": "node.exe",
+			"args": [
+				"scripts/apply-db-migrations.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Install gate poster PDF support",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"install",
+				"jspdf"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Review workspace changes",
+			"type": "shell",
+			"command": "git.exe",
+			"args": [
+				"status",
+				"--short"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

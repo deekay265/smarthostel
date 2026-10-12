@@ -1,0 +1,82 @@
+"use client";
+import { useState } from "react";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import { useApiResource } from "@/components/hostel/useApiResource";
+import { apiRequest } from "@/lib/api";
+
+type Hostel = {
+  id: string; name: string; gender: string; active: boolean;
+  rooms: { id: string; roomNo: string; capacity: number; occupied: number; active: boolean }[];
+};
+
+export default function HostelsPage() {
+  const inventory = useApiResource<Hostel[]>("/api/hostels");
+  const [name, setName] = useState("");
+  const [gender, setGender] = useState("male");
+  const [hostelId, setHostelId] = useState("");
+  const [roomNo, setRoomNo] = useState("");
+  const [capacity, setCapacity] = useState("4");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save(event: React.FormEvent, action: "hostel" | "room") {
+    event.preventDefault(); setSaving(true); setError("");
+    try {
+      await apiRequest("/api/hostels", {
+        method: "POST",
+        body: JSON.stringify(action === "hostel" ? { name, gender } : { action: "create-room", hostelId, roomNo, capacity: Number(capacity) }),
+      });
+      if (action === "hostel") setName("");
+      else { setRoomNo(""); setCapacity("4"); }
+      await inventory.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to save the hostel information.");
+    } finally { setSaving(false); }
+  }
+
+  const hostels = inventory.data ?? [];
+  return (
+    <div className="grid">
+      <div className="page-intro"><div><div className="page-eyebrow">Accommodation</div><h2 className="page-heading">Hostels and room capacity</h2><p className="page-description">Configure hostel eligibility and bed counts used by automatic allocation.</p></div></div>
+      {error && <p role="alert" style={{ color: "var(--danger)" }}>{error}</p>}
+      <div className="grid grid-2">
+        <Card>
+          <h2 className="section-title" style={{ marginTop: 0 }}>Add a hostel</h2>
+          <form onSubmit={(event) => void save(event, "hostel")} style={{ display: "grid", gap: 10 }}>
+            <Input aria-label="Hostel name" placeholder="Hostel name" value={name} onChange={(event) => setName(event.target.value)} required maxLength={100} />
+            <select className="input" aria-label="Eligible residents" value={gender} onChange={(event) => setGender(event.target.value)}>
+              <option value="male">Male residents</option><option value="female">Female residents</option>
+            </select>
+            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Add hostel"}</Button>
+          </form>
+        </Card>
+        <Card>
+          <h2 className="section-title" style={{ marginTop: 0 }}>Add a room</h2>
+          <form onSubmit={(event) => void save(event, "room")} style={{ display: "grid", gap: 10 }}>
+            <select className="input" aria-label="Hostel" value={hostelId} onChange={(event) => setHostelId(event.target.value)} required>
+              <option value="">Select hostel</option>{hostels.map((hostel) => <option key={hostel.id} value={hostel.id}>{hostel.name}</option>)}
+            </select>
+            <Input aria-label="Room number" placeholder="Room number" value={roomNo} onChange={(event) => setRoomNo(event.target.value)} required maxLength={40} />
+            <Input aria-label="Bed capacity" type="number" min="1" max="20" value={capacity} onChange={(event) => setCapacity(event.target.value)} required />
+            <Button type="submit" disabled={saving || !hostels.length}>{saving ? "Saving…" : "Add room"}</Button>
+          </form>
+        </Card>
+      </div>
+      {inventory.error && <p role="alert" style={{ color: "var(--danger)" }}>{inventory.error}</p>}
+      <h2 className="section-title">Live availability</h2>
+      {hostels.map((hostel) => (
+        <Card key={hostel.id}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong>{hostel.name}</strong><span className="muted">{hostel.gender} residents</span></div>
+          {hostel.rooms.length ? hostel.rooms.map((room) => (
+            <div key={room.id} className="activity-row">
+              <div style={{ flex: 1 }}><strong>Room {room.roomNo}</strong><div className="muted">{room.occupied} occupied · {Math.max(0, room.capacity - room.occupied)} available · Capacity {room.capacity}</div></div>
+            </div>
+          )) : <p className="muted" style={{ marginTop: 10 }}>No rooms have been added.</p>}
+        </Card>
+      ))}
+      {!inventory.loading && !hostels.length && <p className="muted">No hostels configured yet.</p>}
+    </div>
+  );
+}

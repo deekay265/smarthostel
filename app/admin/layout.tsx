@@ -6,6 +6,9 @@ import type { NavItem } from "@/components/layout/navigation";
 
 const nav: NavItem[] = [
   { href: "/admin/dashboard", label: "Overview", icon: "dashboard" },
+  { href: "/admin/hostels", label: "Hostels", icon: "hostels" },
+  { href: "/admin/bookings", label: "Bookings", icon: "bookings" },
+  { href: "/admin/gate", label: "Gate scan", icon: "gate" },
   { href: "/admin/credentials", label: "Credentials", icon: "credentials" },
   { href: "/admin/students", label: "Students", icon: "students" },
   { href: "/admin/inspections", label: "Inspections", icon: "inspections" },

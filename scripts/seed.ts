@@ -2,14 +2,14 @@ import "dotenv/config";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
-import { users, roomAssignments } from "../lib/db/schema";
+import { users } from "../lib/db/schema";
 import { hashPassword } from "../lib/password";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is required to seed the database.");
 
 const client = postgres(connectionString, { prepare: false });
-const db = drizzle(client, { schema: { users, roomAssignments } });
+const db = drizzle(client, { schema: { users } });
 
 async function seedUser(input: {
   name: string;
@@ -17,16 +17,23 @@ async function seedUser(input: {
   password: string;
   role: "admin" | "student";
   regNo?: string;
+  gender?: "male" | "female";
 }) {
   const email = input.email.trim().toLowerCase();
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (existing) return existing;
+  if (existing) {
+    if (input.gender && !existing.gender) {
+      await db.update(users).set({ gender: input.gender }).where(eq(users.id, existing.id));
+    }
+    return existing;
+  }
   const [created] = await db.insert(users).values({
     name: input.name,
     email,
     passwordHash: hashPassword(input.password),
     role: input.role,
     regNo: input.regNo,
+    gender: input.gender,
   }).returning();
   return created;
 }
@@ -44,21 +51,14 @@ async function main() {
 
   const studentPassword = process.env.SEED_STUDENT_PASSWORD;
   if (studentPassword) {
-    const student = await seedUser({
+    await seedUser({
       name: process.env.SEED_STUDENT_NAME ?? "Demo Student",
       email: process.env.SEED_STUDENT_EMAIL ?? "student@mubas.ac.mw",
       password: studentPassword,
       role: "student",
       regNo: process.env.SEED_STUDENT_REG_NO ?? "BIS/22/EP/015",
+      gender: process.env.SEED_STUDENT_GENDER === "female" ? "female" : "male",
     });
-    const [assignment] = await db.select().from(roomAssignments).where(eq(roomAssignments.studentId, student.id)).limit(1);
-    if (!assignment) {
-      await db.insert(roomAssignments).values({
-        studentId: student.id,
-        hostel: process.env.SEED_STUDENT_HOSTEL ?? "Nyika",
-        room: process.env.SEED_STUDENT_ROOM ?? "B12",
-      });
-    }
   }
 
   console.info("Database seed complete.");

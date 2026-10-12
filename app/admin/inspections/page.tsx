@@ -5,7 +5,7 @@ import { useApiResource } from "@/components/hostel/useApiResource";
 import Image from "next/image";
 
 type Inspection = {
-  inspection: { id: string; type: string; hostel: string; room: string; notes: string; photos: string[]; submittedAt: string };
+  inspection: { id: string; type: string; hostel: string; room: string; notes: string; photos: string[]; submittedAt: string; aiStatus: string; aiAssessment: string | null };
   studentName: string; regNo: string | null;
 };
 
@@ -25,6 +25,7 @@ export default function InspectionsPage() {
           </div>
           <p className="muted">{inspection.hostel} · {inspection.room}</p>
           <p style={{ margin: "10px 0" }}>{inspection.notes}</p>
+          {inspection.type === "check-out" && <div style={{ margin: "10px 0", padding: 12, borderLeft: "3px solid var(--accent)", background: "var(--primary-light)" }}><strong>AI damage comparison · {inspection.aiStatus}</strong><p className="muted" style={{ whiteSpace: "pre-wrap", marginTop: 5 }}>{inspection.aiAssessment ?? (inspection.aiStatus === "not-configured" ? "Groq is not configured; review the before/after photos manually." : "No AI assessment available.")}</p></div>}
           <div className="grid grid-2">
             {inspection.photos.map((photo, index) => (
               <Image key={`${inspection.id}-${index}`} unoptimized width={640} height={360} src={photo} alt={`${studentName} room inspection photo ${index + 1}`} style={{ width: "100%", height: "auto", maxHeight: 260, objectFit: "contain", borderRadius: 8 }} />

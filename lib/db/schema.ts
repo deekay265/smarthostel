@@ -13,12 +13,55 @@ import { sql } from "drizzle-orm";
 export const userRole = pgEnum("user_role", ["student", "admin"]);
 export const attendanceAction = pgEnum("attendance_action", ["checked-in", "checked-out"]);
 export const inspectionType = pgEnum("inspection_type", ["check-in", "check-out"]);
-export const maintenanceStatus = pgEnum("maintenance_status", ["open", "in-progress", "fixed"]);
+export const maintenanceStatus = pgEnum("maintenance_status", ["open", "in-progress", "fixed", "reported", "verified", "assigned", "resolved"]);
 export const transferStatus = pgEnum("transfer_status", ["pending", "approved", "rejected"]);
 export const complaintStatus = pgEnum("complaint_status", ["open", "reviewed", "resolved"]);
 export const foundStatus = pgEnum("found_status", ["open", "claimed", "returned"]);
 export const foundItemType = pgEnum("found_item_type", ["lost", "found"]);
 export const paymentMethod = pgEnum("payment_method", ["Airtel Money", "TNM Mpamba", "Bank", "Cash"]);
+
+export const hostels = pgTable("hostels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull().unique(),
+  gender: text("gender").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const hostelRooms = pgTable("hostel_rooms", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  hostelId: uuid("hostel_id").notNull().references(() => hostels.id, { onDelete: "cascade" }),
+  roomNo: text("room_no").notNull(),
+  capacity: integer("capacity").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("hostel_rooms_hostel_room_idx").on(table.hostelId, table.roomNo)]);
+
+export const bookingApplications = pgTable("booking_applications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  semester: text("semester").notNull(),
+  gender: text("gender").notNull(),
+  status: text("status").notNull().default("pending"),
+  hostelId: uuid("hostel_id").references(() => hostels.id, { onDelete: "set null" }),
+  roomId: uuid("room_id").references(() => hostelRooms.id, { onDelete: "set null" }),
+  confirmationNo: text("confirmation_no").unique(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+}, (table) => [uniqueIndex("booking_applications_student_semester_idx").on(table.studentId, table.semester)]);
+
+export const payments = pgTable("payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").notNull().references(() => bookingApplications.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  method: paymentMethod("method").notNull(),
+  reference: text("reference").notNull(),
+  proofPhoto: text("proof_photo"),
+  status: text("status").notNull().default("pending"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+}, (table) => [uniqueIndex("payments_method_reference_idx").on(table.method, table.reference)]);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -27,12 +70,16 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRole("role").notNull().default("student"),
   regNo: text("reg_no").unique(),
+  gender: text("gender"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const roomAssignments = pgTable("room_assignments", {
   id: uuid("id").defaultRandom().primaryKey(),
   studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").references(() => bookingApplications.id, { onDelete: "set null" }),
+  roomId: uuid("room_id").references(() => hostelRooms.id, { onDelete: "set null" }),
+  qrToken: uuid("qr_token").defaultRandom().notNull().unique(),
   hostel: text("hostel").notNull(),
   room: text("room").notNull(),
   active: boolean("active").notNull().default(true),
@@ -47,20 +94,43 @@ export const checkinEvents = pgTable("checkin_events", {
   eventAt: timestamp("event_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const gateVisitorEvents = pgTable("gate_visitor_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fullName: text("full_name").notNull(),
+  identifier: text("identifier").notNull(),
+  gate: text("gate").notNull(),
+  eventAt: timestamp("event_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const roomInspections = pgTable("room_inspections", {
   id: uuid("id").defaultRandom().primaryKey(),
   studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  assignmentId: uuid("assignment_id").references(() => roomAssignments.id, { onDelete: "set null" }),
   hostel: text("hostel").notNull(),
   room: text("room").notNull(),
   type: inspectionType("type").notNull(),
   notes: text("notes").notNull(),
   photos: text("photos").array().notNull().default([]),
+  aiStatus: text("ai_status").notNull().default("not-configured"),
+  aiAssessment: text("ai_assessment"),
+  aiAssessedAt: timestamp("ai_assessed_at", { withTimezone: true }),
   submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [uniqueIndex("room_inspections_assignment_type_idx").on(table.assignmentId, table.type)]);
 
 export const receipts = pgTable("receipts", {
   id: uuid("id").defaultRandom().primaryKey(),
   studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").references(() => bookingApplications.id, { onDelete: "set null" }),
+  paymentId: uuid("payment_id").references(() => payments.id, { onDelete: "set null" }).unique(),
   trackingNo: text("tracking_no").notNull().unique(),
   amount: integer("amount").notNull(),
   method: paymentMethod("method").notNull(),
@@ -77,6 +147,10 @@ export const maintenanceRequests = pgTable("maintenance_requests", {
   room: text("room").notNull(),
   status: maintenanceStatus("status").notNull().default("open"),
   verificationNotes: text("verification_notes"),
+  assignedStaff: text("assigned_staff"),
+  resolutionNotes: text("resolution_notes"),
+  reportPhoto: text("report_photo"),
+  resolutionPhoto: text("resolution_photo"),
   reportedAt: timestamp("reported_at", { withTimezone: true }).notNull().defaultNow(),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
 });

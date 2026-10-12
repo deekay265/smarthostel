@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, Check, LockKeyhole, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { login, homeFor } from "@/lib/auth";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -78,6 +79,7 @@ export default function LoginPage() {
             <span>Your account is protected. For access help, contact the hostel office.</span>
           </div>
           <div className="login-footer">MUBAS · Malawi University of Business and Applied Sciences</div>
+          <Link href="/receipts/verify" className="login-receipt-link">Verify a hostel payment receipt</Link>
         </div>
       </section>
       <div className="login-mobile-brand">

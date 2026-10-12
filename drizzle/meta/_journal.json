@@ -15,6 +15,34 @@
       "when": 1791390644916,
       "tag": "0001_purple_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791828592458,
+      "tag": "0002_cold_forge",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791831155124,
+      "tag": "0003_nifty_masked_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791831939709,
+      "tag": "0004_flowery_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791840308800,
+      "tag": "0005_wooden_vermin",
+      "breakpoints": true
     }
   ]
 }

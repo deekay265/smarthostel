@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import { useApiResource } from "@/components/hostel/useApiResource";
 import { apiRequest } from "@/lib/api";
@@ -11,13 +10,19 @@ type Transfer = {
   id: string; currentHostel: string; currentRoom: string;
   requestedHostel: string; requestedRoom: string; reason: string; status: string; reviewNotes: string | null;
 };
+type HostelOption = {
+  id: string; name: string; gender: string;
+  rooms: { id: string; roomNo: string; capacity: number; occupied: number }[];
+};
 
 export default function TransferPage() {
   const { data: items, loading, error, setError, refresh } = useApiResource<Transfer[]>("/api/hostel/transfers");
-  const [requestedHostel, setRequestedHostel] = useState("");
-  const [requestedRoom, setRequestedRoom] = useState("");
+  const hostels = useApiResource<HostelOption[]>("/api/hostels");
+  const [requestedHostelId, setRequestedHostelId] = useState("");
+  const [requestedRoomId, setRequestedRoomId] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const selectedHostel = hostels.data?.find((hostel) => hostel.id === requestedHostelId);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -25,10 +30,10 @@ export default function TransferPage() {
     setError("");
     try {
       await apiRequest("/api/hostel/transfers", {
-        method: "POST", body: JSON.stringify({ requestedHostel, requestedRoom, reason }),
+        method: "POST", body: JSON.stringify({ requestedHostelId, requestedRoomId, reason }),
       });
-      setRequestedHostel(""); setRequestedRoom(""); setReason("");
-      await refresh();
+      setRequestedHostelId(""); setRequestedRoomId(""); setReason("");
+      await Promise.all([refresh(), hostels.refresh()]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to submit the request.");
     } finally { setSaving(false); }
@@ -40,8 +45,13 @@ export default function TransferPage() {
         <h2 className="section-title" style={{ marginTop: 0 }}>Request a room transfer</h2>
         <p className="muted" style={{ marginBottom: 10 }}>Transfer requests are reviewed by the hostel office. An approved request updates your room assignment.</p>
         <form onSubmit={(event) => void submit(event)} style={{ display: "grid", gap: 10 }}>
-          <Input placeholder="Requested hostel" value={requestedHostel} onChange={(event) => setRequestedHostel(event.target.value)} required maxLength={150} />
-          <Input placeholder="Requested room" value={requestedRoom} onChange={(event) => setRequestedRoom(event.target.value)} required maxLength={40} />
+          <select className="input" aria-label="Requested hostel" value={requestedHostelId} onChange={(event) => { setRequestedHostelId(event.target.value); setRequestedRoomId(""); }} required>
+            <option value="">Select eligible hostel</option>{hostels.data?.map((hostel) => <option key={hostel.id} value={hostel.id}>{hostel.name}</option>)}
+          </select>
+          <select className="input" aria-label="Available room" value={requestedRoomId} onChange={(event) => setRequestedRoomId(event.target.value)} required disabled={!selectedHostel?.rooms.length}>
+            <option value="">Select available room</option>{selectedHostel?.rooms.map((room) => <option key={room.id} value={room.id}>Room {room.roomNo} · {room.capacity - room.occupied} bed(s) available</option>)}
+          </select>
+          {hostels.error && <p role="alert" style={{ color: "var(--danger)" }}>{hostels.error}</p>}
           <textarea className="input" placeholder="Reason for transfer" value={reason} onChange={(event) => setReason(event.target.value)} rows={3} required maxLength={3000} />
           <Button type="submit" disabled={saving}>{saving ? "Submitting…" : "Submit transfer request"}</Button>
         </form>

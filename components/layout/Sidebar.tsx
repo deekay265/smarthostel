@@ -1,6 +1,7 @@
 // components/layout/Sidebar.tsx — desktop only
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Building2, CircleHelp, LogOut } from "lucide-react";
 import { navIcons, type NavItem } from "./navigation";
@@ -24,7 +25,7 @@ export default function Sidebar({ nav }: { nav: NavItem[] }) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark"><Building2 size={21} strokeWidth={1.8} /></span>
+        <span className="brand-mark"><Image src="/logo-white.png" alt="MUBAS crest" width={36} height={36} priority /></span>
         <div>
           <div className="brand-name">MUBAS Hostels</div>
           <div className="brand-caption">Residence portal</div>

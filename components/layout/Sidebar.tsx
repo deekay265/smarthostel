@@ -3,24 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Building2, CircleHelp, LogOut } from "lucide-react";
+import { Building2, CircleHelp } from "lucide-react";
 import { navIcons, type NavItem } from "./navigation";
-import { logout } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import SignOutButton from "./SignOutButton";
 
 export default function Sidebar({ nav }: { nav: NavItem[] }) {
   const path = usePathname();
-  const router = useRouter();
-
-  const signOut = async () => {
-    try {
-      await logout();
-      router.push("/login");
-    } catch (error) {
-      console.error("Could not complete sign out:", error);
-      window.alert("Unable to reach the server to sign out. Please retry.");
-    }
-  };
 
   return (
     <aside className="sidebar">
@@ -48,10 +36,7 @@ export default function Sidebar({ nav }: { nav: NavItem[] }) {
         <Building2 size={17} />
         <span>Malawi University of<br />Business and Applied Sciences</span>
       </div>
-      <button onClick={() => void signOut()} className="nav-link" style={{ marginTop: 10, width: "100%", background: "transparent", border: 0, textAlign: "left" }}>
-        <span className="nav-link-icon"><LogOut size={18} /></span>
-        Sign out
-      </button>
+      <SignOutButton className="sidebar-signout" />
     </aside>
   );
 }

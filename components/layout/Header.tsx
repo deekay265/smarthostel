@@ -4,6 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { ShieldCheck } from "lucide-react";
 import { sessionSnapshot, subscribeSession } from "@/lib/auth";
 import type { User } from "@/lib/types";
+import SignOutButton from "./SignOutButton";
 
 export default function Header({ title }: { title: string }) {
   const raw = useSyncExternalStore(subscribeSession, sessionSnapshot, () => null);
@@ -18,13 +19,16 @@ export default function Header({ title }: { title: string }) {
         <h1 className="topbar-title">{title}</h1>
         <p className="topbar-caption">MUBAS Smart Hostels · Residence services</p>
       </div>
-      <div className="profile">
-        <span className="avatar" aria-hidden="true">{initials}</span>
-        <div>
-          <div className="profile-name">{user?.name ?? "Hostel account"}</div>
-          <div className="profile-caption">{user?.role === "admin" ? "Administrator" : user?.regNo ?? "Student"}</div>
+      <div className="header-tools">
+        <div className="profile">
+          <span className="avatar" aria-hidden="true">{initials}</span>
+          <div>
+            <div className="profile-name">{user?.name ?? "Hostel account"}</div>
+            <div className="profile-caption">{user?.role === "admin" ? "Administrator" : user?.regNo ?? "Student"}</div>
+          </div>
+          <ShieldCheck size={17} color="var(--primary)" aria-label="Secure account" />
         </div>
-        <ShieldCheck size={17} color="var(--primary)" aria-label="Secure account" />
+        <SignOutButton className="header-signout" />
       </div>
     </header>
   );

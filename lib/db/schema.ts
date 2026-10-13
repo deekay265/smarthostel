@@ -83,13 +83,14 @@ export const hostelBookingPayments = pgTable("hostel_booking_payments", {
   id: uuid("id").defaultRandom().primaryKey(),
   studentId: uuid("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   academicYear: text("academic_year").notNull(),
+  paymentMonth: text("payment_month").notNull(),
   bankAccountNo: text("bank_account_no").notNull(),
   amount: integer("amount").notNull(),
   method: paymentMethod("method").notNull().default("Bank"),
   reference: text("reference").notNull().unique(),
   paidAt: timestamp("paid_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex("hostel_booking_payments_student_year_idx").on(table.studentId, table.academicYear),
+  uniqueIndex("hostel_booking_payments_student_month_idx").on(table.studentId, table.academicYear, table.paymentMonth),
 ]);
 
 export const users = pgTable("users", {

@@ -1,7 +1,7 @@
 import { and, count, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { getDb } from "@/lib/db";
-import { bookingApplications, bookingSettings, hostelBookingPayments, hostelRooms, hostels, roomAssignments, users } from "@/lib/db/schema";
+import { bookingApplications, bookingSettings, hostelRooms, hostels, roomAssignments, users } from "@/lib/db/schema";
 import { sendBookingConfirmation } from "@/lib/booking-email";
 import { requireUser } from "@/lib/server-auth";
 
@@ -47,8 +47,6 @@ export async function POST() {
     const user = await requireUser("student");
     if (!user.regNo) return Response.json({ error: "Your registration number is missing. Contact the hostel office." }, { status: 409 });
     if (user.gender !== "male" && user.gender !== "female") return Response.json({ error: "Your verified hostel eligibility is missing. Contact the hostel office." }, { status: 409 });
-    const studentBankAccountNo = user.bankAccountNo;
-    if (!studentBankAccountNo) return Response.json({ error: "Your bank account number is missing. Contact the hostel office." }, { status: 409 });
     const studentGender = user.gender;
 
     const db = getDb();
@@ -64,18 +62,6 @@ export async function POST() {
         eq(bookingApplications.status, "approved"),
       )).limit(1);
       if (existing) throw new Response(`You already have a hostel booking for academic year ${settings.academicYear}.`, { status: 409 });
-
-      const [payment] = await tx.select().from(hostelBookingPayments).where(and(
-        eq(hostelBookingPayments.studentId, user.id),
-        eq(hostelBookingPayments.academicYear, settings.academicYear),
-        eq(hostelBookingPayments.bankAccountNo, studentBankAccountNo),
-      )).limit(1);
-      if (!payment) {
-        throw new Response(`No matching hostel bank payment is recorded for academic year ${settings.academicYear}. Contact the hostel office to check your payment status.`, { status: 402 });
-      }
-      if (payment.amount !== settings.monthlyRent) {
-        throw new Response("The recorded bank payment does not match the configured hostel rent. Contact the hostel office.", { status: 409 });
-      }
 
       const candidates = await tx.select({
         hostelId: hostels.id, hostelName: hostels.name,

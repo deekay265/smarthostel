@@ -17,7 +17,9 @@ type BookingWindow = {
   isOpen: boolean;
   alreadyBooked: boolean;
   student: { bankAccountNo: string | null; regNo: string | null; gender: string | null };
-  payment: { status: "paid" | "unpaid" | "amount-mismatch"; amount: number | null; reference?: string; paidAt?: string };
+  currentMonth: string;
+  currentMonthPayment: { amount: number; reference: string; paidAt: string } | null;
+  rentPayments: { paymentMonth: string; amount: number; reference: string; paidAt: string }[];
 };
 
 export default function StudentBookingsPage() {
@@ -47,15 +49,14 @@ export default function StudentBookingsPage() {
 
   const windowData = bookingWindow.data;
   const eligible = Boolean(windowData?.student.regNo && ["male", "female"].includes(windowData.student.gender ?? ""));
-  const canBook = Boolean(windowData?.isOpen && windowData.payment.status === "paid"
-    && !windowData.alreadyBooked && eligible);
+  const canBook = Boolean(windowData?.isOpen && !windowData.alreadyBooked && eligible);
 
   return (
     <div className="grid">
-      <div className="page-intro"><div><div className="page-eyebrow">Accommodation</div><h2 className="page-heading">Hostel booking</h2><p className="page-description">Check your hostel rent status, then book once the office opens the booking window.</p></div></div>
+      <div className="page-intro"><div><div className="page-eyebrow">Accommodation</div><h2 className="page-heading">Hostel booking</h2><p className="page-description">Book during the office-configured window. Monthly rent is paid after your room is assigned.</p></div></div>
       {bookingWindow.error && <p role="alert" style={{ color: "var(--danger)" }}>{bookingWindow.error}</p>}
       <Card>
-        <h2 className="section-title" style={{ marginTop: 0 }}>Booking and payment status</h2>
+        <h2 className="section-title" style={{ marginTop: 0 }}>Booking window</h2>
         {bookingWindow.loading && <p className="muted">Loading booking details…</p>}
         {windowData?.settings ? <>
           <p><strong>Academic year:</strong> {windowData.settings.academicYear}</p>
@@ -64,19 +65,11 @@ export default function StudentBookingsPage() {
             {new Date(windowData.settings.opensAt).toLocaleString()} – {new Date(windowData.settings.closesAt).toLocaleString()}
           </p>
           <p style={{ marginTop: 12 }}><strong>Hostel rent:</strong> {mkw(windowData.settings.monthlyRent)}</p>
-          <p style={{ marginTop: 6 }}>
-            <strong>Bank payment:</strong>{" "}
-            <Badge status={windowData.payment.status === "paid" ? "success" : windowData.payment.status === "amount-mismatch" ? "danger" : "warning"}>{windowData.payment.status}</Badge>
-          </p>
-          {windowData.payment.status === "paid" && <p className="muted" style={{ marginTop: 5 }}>Reference {windowData.payment.reference} · Recorded {new Date(windowData.payment.paidAt!).toLocaleString()}</p>}
-          {windowData.payment.status === "unpaid" && <p className="muted" style={{ marginTop: 5 }}>Your booking can proceed once your bank payment is recorded by the hostel office&apos;s simulator.</p>}
-          {windowData.payment.status === "amount-mismatch" && <p className="muted" style={{ marginTop: 5 }}>The recorded bank payment does not match the current rent. Contact the hostel office.</p>}
           <p style={{ marginTop: 10 }}><strong>Your bank account number:</strong> <span style={{ fontFamily: "monospace" }}>{windowData.student.bankAccountNo ?? "Not assigned — contact the hostel office"}</span></p>
           {!eligible && <p role="alert" style={{ color: "var(--danger)", marginTop: 8 }}>Your student eligibility details are incomplete. Contact the hostel office.</p>}
           {windowData.alreadyBooked && <p className="muted" style={{ marginTop: 8 }}>You already have an approved booking for this academic year.</p>}
-          {windowData.payment.status === "unpaid" && <Button variant="ghost" onClick={() => void bookingWindow.refresh()} disabled={bookingWindow.loading} style={{ marginTop: 10 }}>Refresh payment status</Button>}
           <Button onClick={() => void book()} disabled={saving || bookingWindow.loading || !canBook} style={{ marginTop: 12 }}>
-            {saving ? "Checking and booking…" : "Book hostel"}
+            {saving ? "Checking availability…" : "Book hostel"}
           </Button>
         </> : !bookingWindow.loading && <p className="muted">The hostel office has not configured a booking window yet.</p>}
         {error && <p role="alert" style={{ color: "var(--danger)", marginTop: 10 }}>{error}</p>}
@@ -99,6 +92,19 @@ export default function StudentBookingsPage() {
         </Card>;
       })}
       {!bookings.loading && !bookings.data?.length && <p className="muted">No bookings yet.</p>}
+      {windowData?.alreadyBooked && <Card>
+        <h2 className="section-title" style={{ marginTop: 0 }}>Monthly rent status</h2>
+        <p>Rent is due monthly after your room is assigned. Current month: <strong>{windowData.currentMonth}</strong></p>
+        <p style={{ marginTop: 8 }}><strong>Status:</strong>{" "}
+          <Badge status={windowData.currentMonthPayment ? "success" : "warning"}>{windowData.currentMonthPayment ? "paid" : "unpaid"}</Badge>
+        </p>
+        {windowData.currentMonthPayment && <p className="muted" style={{ marginTop: 5 }}>Reference {windowData.currentMonthPayment.reference} · {mkw(windowData.currentMonthPayment.amount)} · Recorded {new Date(windowData.currentMonthPayment.paidAt).toLocaleString()}</p>}
+        <Button variant="ghost" onClick={() => void bookingWindow.refresh()} disabled={bookingWindow.loading} style={{ marginTop: 10 }}>Refresh rent status</Button>
+        {windowData.rentPayments.length > 0 && <>
+          <h3 className="section-title" style={{ marginTop: 18 }}>Monthly payment history</h3>
+          {windowData.rentPayments.map((payment) => <p className="muted" key={payment.paymentMonth} style={{ marginTop: 5 }}>{payment.paymentMonth} · {mkw(payment.amount)} · {payment.reference}</p>)}
+        </>}
+      </Card>}
     </div>
   );
 }

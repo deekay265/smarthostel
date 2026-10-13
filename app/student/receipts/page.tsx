@@ -6,16 +6,17 @@ import { useApiResource } from "@/components/hostel/useApiResource";
 import { mkw } from "@/lib/format";
 
 type Receipt = { id: string; trackingNo: string; amount: number; method: string; paidAt: string; status: string };
-type PaymentRow = { payment: { id: string; amount: number; method: string; reference: string; status: string }; semester: string };
 type BookingWindow = {
   settings: { academicYear: string; monthlyRent: number } | null;
   student: { bankAccountNo: string | null };
-  payment: { status: "paid" | "unpaid" | "amount-mismatch"; amount: number | null; reference?: string; paidAt?: string };
+  alreadyBooked: boolean;
+  currentMonth: string;
+  currentMonthPayment: { amount: number; reference: string; paidAt: string } | null;
+  rentPayments: { paymentMonth: string; amount: number; reference: string; paidAt: string }[];
 };
 
 export default function ReceiptsPage() {
   const receipts = useApiResource<Receipt[]>("/api/hostel/receipts");
-  const payments = useApiResource<PaymentRow[]>("/api/payments");
   const bookingWindow = useApiResource<BookingWindow>("/api/booking-window");
   return (
     <div className="grid">
@@ -25,17 +26,20 @@ export default function ReceiptsPage() {
         {bookingWindow.loading && <p className="muted">Loading payment status…</p>}
         {!bookingWindow.loading && bookingWindow.data?.settings && <>
           <p><strong>Academic year:</strong> {bookingWindow.data.settings.academicYear}</p>
-          <p style={{ marginTop: 6 }}><strong>Amount:</strong> {mkw(bookingWindow.data.payment.amount ?? bookingWindow.data.settings.monthlyRent)}</p>
-          <p style={{ marginTop: 6 }}><strong>Status:</strong>{" "}
-            <Badge status={bookingWindow.data.payment.status === "paid" ? "success" : bookingWindow.data.payment.status === "amount-mismatch" ? "danger" : "warning"}>{bookingWindow.data.payment.status}</Badge>
-          </p>
+          <p style={{ marginTop: 6 }}><strong>Monthly rent:</strong> {mkw(bookingWindow.data.settings.monthlyRent)}</p>
           <p className="muted" style={{ marginTop: 6 }}>Student bank account: {bookingWindow.data.student.bankAccountNo ?? "Not assigned"}</p>
-          {bookingWindow.data.payment.status === "paid" && <p className="muted" style={{ marginTop: 6 }}>Bank reference: {bookingWindow.data.payment.reference} · Recorded {new Date(bookingWindow.data.payment.paidAt!).toLocaleString()}</p>}
+          {bookingWindow.data.alreadyBooked ? <>
+            <p style={{ marginTop: 8 }}><strong>{bookingWindow.data.currentMonth} rent status:</strong>{" "}
+              <Badge status={bookingWindow.data.currentMonthPayment ? "success" : "warning"}>{bookingWindow.data.currentMonthPayment ? "paid" : "unpaid"}</Badge>
+            </p>
+            {bookingWindow.data.currentMonthPayment && <p className="muted" style={{ marginTop: 6 }}>Bank reference: {bookingWindow.data.currentMonthPayment.reference} · Recorded {new Date(bookingWindow.data.currentMonthPayment.paidAt).toLocaleString()}</p>}
+          </> : <p className="muted" style={{ marginTop: 8 }}>Book and receive a room assignment before monthly rent payments are due.</p>}
         </>}
         {!bookingWindow.loading && !bookingWindow.data?.settings && <p className="muted">The hostel office has not configured a booking year and rent yet.</p>}
       </Card>
-      <h2 className="section-title">Previous payment records</h2>
-      {payments.data?.map(({ payment, semester }) => <Card key={payment.id}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{payment.method} · {mkw(payment.amount)}</strong><Badge status={payment.status === "verified" ? "success" : payment.status === "rejected" ? "danger" : "warning"}>{payment.status}</Badge></div><p className="muted">{semester} · Reference {payment.reference}</p></Card>)}
+      <h2 className="section-title">Monthly rent payment history</h2>
+      {bookingWindow.data?.rentPayments.map((payment) => <Card key={payment.paymentMonth}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{payment.paymentMonth} · {mkw(payment.amount)}</strong><Badge status="success">paid</Badge></div><p className="muted">Bank reference {payment.reference} · {new Date(payment.paidAt).toLocaleString()}</p></Card>)}
+      {bookingWindow.data?.alreadyBooked && !bookingWindow.data.rentPayments.length && <p className="muted">No monthly rent payments recorded yet.</p>}
       <h2 className="section-title">Office receipts</h2>
       {receipts.loading && <p className="muted">Loading receipts…</p>}
       {receipts.error && <p role="alert" style={{ color: "var(--danger)" }}>{receipts.error}</p>}

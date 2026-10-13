@@ -14,7 +14,8 @@ export async function GET() {
       eq(bookingApplications.academicYear, settings.academicYear),
       eq(bookingApplications.status, "approved"),
     )).limit(1) : [];
-    const [payment] = settings && user.bankAccountNo ? await db.select({
+    const rentPayments = settings && user.bankAccountNo ? await db.select({
+      paymentMonth: hostelBookingPayments.paymentMonth,
       amount: hostelBookingPayments.amount,
       reference: hostelBookingPayments.reference,
       paidAt: hostelBookingPayments.paidAt,
@@ -22,17 +23,18 @@ export async function GET() {
       eq(hostelBookingPayments.studentId, user.id),
       eq(hostelBookingPayments.academicYear, settings.academicYear),
       eq(hostelBookingPayments.bankAccountNo, user.bankAccountNo),
-    )).limit(1) : [];
+    )).orderBy(hostelBookingPayments.paymentMonth) : [];
     const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentMonthPayment = rentPayments.find((payment) => payment.paymentMonth === currentMonth);
     return Response.json({
       settings: settings ?? null,
       isOpen: Boolean(settings && now >= settings.opensAt && now <= settings.closesAt),
       student: { bankAccountNo: user.bankAccountNo ?? null, regNo: user.regNo ?? null, gender: user.gender ?? null },
       alreadyBooked: Boolean(yearBooking),
-      payment: payment ? {
-        status: payment.amount === settings?.monthlyRent ? "paid" : "amount-mismatch",
-        ...payment,
-      } : { status: "unpaid", amount: settings?.monthlyRent ?? null },
+      currentMonth,
+      currentMonthPayment: currentMonthPayment ?? null,
+      rentPayments,
     });
   } catch (error) {
     return Response.json({ error: error instanceof Response ? await error.text() : "Unable to load booking window." }, {
